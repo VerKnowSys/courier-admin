@@ -3,11 +3,11 @@
 # Some parts are stolen from the famous software manager - Sofin.
 
 
-VERSION="0.1.0"
+VERSION="0.1.1"
 HEADER="Courier Admin v${VERSION} - © 2o13 - Versatile Knowledge Systems - VerKnowSys.com"
 
 
-DEBUG=true
+# DEBUG=true
 AWK_BIN="/usr/bin/awk"
 PRINTF_BIN="/usr/bin/printf"
 CHMOD_BIN="/bin/chmod"
@@ -135,12 +135,25 @@ check_dirs () {
         exit 1
     fi
     if [ ! -d "$COURIER_USERDB_DIR" ]; then
-        error "User database directory \"$COURIER_USERDB_DIR\" doesn't exist."
-        exit 1
+        if [ -f "$COURIER_USERDB_DIR" ]; then
+            error "User database file \"$COURIER_USERDB_DIR\" should be a directory."
+            exit 1
+        else
+            note "Creating \"$COURIER_USERDB_DIR\" directory."
+            $MKDIR_BIN "$COURIER_USERDB_DIR"
+            check_command_result $?
+            $CHMOD_BIN 700 "$COURIER_USERDB_DIR"
+        fi
     fi
     if [ ! -d "$COURIER_HOSTEDDOMAINS_DIR" ]; then
-        error "Directory \"$COURIER_HOSTEDDOMAINS_DIR\" doesn't exist."
-        exit 1
+        if [ -f "$COURIER_HOSTEDDOMAINS_DIR" ]; then
+            error "Hosted domains file \"$COURIER_HOSTEDDOMAINS_DIR\" should be a directory."
+            exit 1
+        else
+            note "Creating \"$COURIER_HOSTEDDOMAINS_DIR\" directory."
+            $MKDIR_BIN "$COURIER_HOSTEDDOMAINS_DIR"
+            check_command_result $?
+        fi
     fi
     if [ ! -d "$COURIER_ACCEPTMAILFOR_DIR" ]; then
         error "Directory \"$COURIER_ACCEPTMAILFOR_DIR\" doesn't exist."
@@ -149,6 +162,7 @@ check_dirs () {
     if [ ! -d "$VMAIL_DIR" ]; then
         note "Creating \"$VMAIL_DIR\" directory."
         $MKDIR_BIN "$VMAIL_DIR"
+        check_command_result $?
         chown_dir "$VMAIL_DIR"
         $CHMOD_BIN 700 "$VMAIL_DIR"
     fi

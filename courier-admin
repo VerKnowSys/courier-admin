@@ -1,0 +1,318 @@
+#!/bin/sh
+# @author: Michał Lipski <michal@tallica.pl>
+# Some parts are stolen from the famous software manager - Sofin.
+
+
+VERSION="0.1.0"
+HEADER="Courier Admin v${VERSION} - © 2o13 - Versatile Knowledge Systems - VerKnowSys.com"
+
+
+DEBUG=true
+AWK_BIN="/usr/bin/awk"
+PRINTF_BIN="/usr/bin/printf"
+CHMOD_BIN="/bin/chmod"
+CHOWN_BIN="/usr/sbin/chown"
+MKDIR_BIN="/bin/mkdir"
+GREP_BIN="/usr/bin/grep"
+
+
+COURIER_CONF_DIR="/Software/Courier/etc"
+COURIER_USERDB_DIR="${COURIER_CONF_DIR}/authlib/userdb"
+COURIER_HOSTEDDOMAINS_DIR="${COURIER_CONF_DIR}/hosteddomains"
+COURIER_ACCEPTMAILFOR_DIR="${COURIER_CONF_DIR}/esmtpacceptmailfor.dir"
+COURIER_BIN_DIR="/Software/Courier/exports"
+USERDB_BIN="${COURIER_BIN_DIR}/userdb"
+USERDBPW_BIN="${COURIER_BIN_DIR}/userdbpw"
+MAILDIRMAKE_BIN="${COURIER_BIN_DIR}/maildirmake"
+MAKEUSERDB_BIN="${COURIER_BIN_DIR}/makeuserdb"
+MAKEHOSTEDDOMAINS_BIN="${COURIER_BIN_DIR}/makehosteddomains"
+MAKEACCEPTMAILFOR_BIN="${COURIER_BIN_DIR}/makeacceptmailfor"
+
+
+VMAIL_DIR="/Vmail"
+VMAIL_UID="1"
+VMAIL_GID="1"
+MAILDIR_DIR="Maildir"
+
+
+# ANSI color definitions
+red='\033[31;40m'
+green='\033[32;40m'
+yellow='\033[33;40m'
+blue='\033[34;40m'
+magenta='\033[35;40m'
+cyan='\033[36;40m'
+gray='\033[37;40m'
+white='\033[38;40m'
+reset='\033[0m'
+
+
+# common functions
+# helpers
+
+cecho () {
+    if [ "${DEBIAN}" = "true" ]; then
+        ${PRINTF_BIN} "${1}\n"
+    else
+        ${PRINTF_BIN} "${2}${1}${reset}\n"
+    fi
+}
+
+
+debug () {
+    if [ "${DEBUG}" = "true" ]; then
+        cecho " ~ $1" ${magenta}
+    # else
+        # cecho " ~ $1" ${magenta} >> ${LOG}
+    fi
+}
+
+
+warn () {
+    cecho " • $1" ${yellow}
+}
+
+
+note () {
+    cecho " » $1" ${green}
+}
+
+
+error () {
+    cecho " # $1" ${red}
+}
+
+
+check_command_result () {
+    if [ -z "$1" ]; then
+        error "No param given for check_command_result()!"
+        exit 1
+    fi
+    if [ "$1" = "0" ]; then
+        debug "CORRECT"
+    else
+        error
+        error "FAILURE"
+        exit 1
+    fi
+}
+
+
+get_user () {
+    $PRINTF_BIN "$1" | $AWK_BIN -F'@' '{print $1}'
+}
+
+
+get_domain () {
+    $PRINTF_BIN "$1" | $AWK_BIN -F'@' '{print $2}'
+}
+
+
+address_exists () {
+    $USERDB_BIN -show -f "$userdb" | $GREP_BIN -q "$address"
+    if [ $? -eq 0 ]; then
+        $PRINTF_BIN "true"
+    else
+        $PRINTF_BIN "false"
+    fi
+}
+
+
+chown_dir () {
+    if [ -d "$1" ]; then
+        $CHOWN_BIN -R "${VMAIL_UID}:${VMAIL_GID}" "$1"
+    else
+        error "Failed to change owner. Directory \"$1\" doesn't exist."
+        exit 1
+    fi
+}
+
+
+check_dirs () {
+    debug "Checking dirs..."
+    if [ ! -d "$COURIER_CONF_DIR" ]; then
+        error "Config directory \"$COURIER_CONF_DIR\" doesn't exist."
+        exit 1
+    fi
+    if [ ! -d "$COURIER_USERDB_DIR" ]; then
+        error "User database directory \"$COURIER_USERDB_DIR\" doesn't exist."
+        exit 1
+    fi
+    if [ ! -d "$COURIER_HOSTEDDOMAINS_DIR" ]; then
+        error "Directory \"$COURIER_HOSTEDDOMAINS_DIR\" doesn't exist."
+        exit 1
+    fi
+    if [ ! -d "$COURIER_ACCEPTMAILFOR_DIR" ]; then
+        error "Directory \"$COURIER_ACCEPTMAILFOR_DIR\" doesn't exist."
+        exit 1
+    fi
+    if [ ! -d "$VMAIL_DIR" ]; then
+        note "Creating \"$VMAIL_DIR\" directory."
+        $MKDIR_BIN "$VMAIL_DIR"
+        chown_dir "$VMAIL_DIR"
+        $CHMOD_BIN 700 "$VMAIL_DIR"
+    fi
+}
+
+
+validate_address () {
+    debug "Validating e-mail address..."
+    # TODO
+    if [ "$1" = "" ]; then
+        error "Invalid e-mail address."
+        exit 1
+    fi
+}
+
+
+validate_user () {
+    debug "Validating user name..."
+    # TODO
+    if [ "$1" = "" ]; then
+        error "Invalid user name."
+        exit 1
+    fi
+}
+
+
+validate_domain () {
+    debug "Validating domain name..."
+    # TODO
+    if [ "$1" = "" ]; then
+        error "Invalid domain name."
+        exit 1
+    fi
+}
+
+
+
+yesno_prompt () {
+    while true; do
+        warn "Do you want to continue? (y/n)"
+        read yn
+        case $yn in
+
+            [Yy]*)
+                break ;;
+
+            [Nn]*)
+                exit ;;
+
+            * )
+                warn "Please answer yes or no." ;;
+
+        esac
+    done
+}
+
+
+usage () {
+    note
+    note "Available commands:"
+    note
+    note "add <user@domain>"
+    note "set <user@domain> [home=/Directory] [quota=10000]"
+    note "password <user@domain>"
+    note "del <user@domain>"
+    note "info <user@domain>"
+    note "list <domain>"
+    note "all"
+}
+
+
+bootstrap_user () {
+    validate_address "$1"
+    user="$(get_user $1)"
+    validate_user "$user"
+    domain="$(get_domain $1)"
+    validate_domain "$domain"
+    user_home="${VMAIL_DIR}/${domain}/${user}"
+    domain_home="${VMAIL_DIR}/${domain}"
+    userdb="${COURIER_USERDB_DIR}/${domain}"
+    address="${user}@${domain}"
+    maildir="${user_home}/${MAILDIR_DIR}"
+    hosted_domains="${COURIER_HOSTEDDOMAINS_DIR}/${domain}"
+    accept_mail_for="${COURIER_ACCEPTMAILFOR_DIR}/${domain}"
+}
+
+
+note "$HEADER"
+
+
+if [ ! "$1" = "" ]; then
+
+
+    case $1 in
+
+
+    add)
+
+        bootstrap_user "$2"
+        check_dirs
+
+        if [ "$(address_exists)" = "true" ]; then
+            warn "This email address already exists."
+            exit 1
+        fi
+
+        if [ -d "$user_home" ]; then
+            warn "Home directory at \"$user_home\" already exists."
+            yesno_prompt
+        else
+            note "Creating home directory at \"$user_home\"."
+            $MKDIR_BIN -p "$user_home"
+            check_command_result $?
+            chown_dir "$domain_home"
+        fi
+
+        if [ ! -f "$hosted_domains" ]; then
+            debug "Creating \"$hosted_domains\"."
+            echo "$domain" > "$hosted_domains"
+            debug "Rebuilding \"Hosted domains\" database."
+            $MAKEHOSTEDDOMAINS_BIN
+            check_command_result $?
+        fi
+
+        if [ ! -f "$accept_mail_for" ]; then
+            debug "Creating \"$accept_mail_for\"."
+            echo "$domain" > "$accept_mail_for"
+            debug "Rebuilding \"Accept mail for\" database."
+            $MAKEACCEPTMAILFOR_BIN
+            check_command_result $?
+        fi
+
+        if [ -d "$maildir" ]; then
+            warn "Maildir at \"$maildir\" already exists."
+            yesno_prompt
+        else
+            note "Creating Maildir at \"$maildir\"."
+            $MAILDIRMAKE_BIN "$maildir"
+            check_command_result $?
+            chown_dir "$maildir"
+        fi
+
+        note "Adding user \"$user\" at domain \"$domain\" to database."
+        $USERDB_BIN -f "$userdb" "$address" set home="$user_home" uid="$VMAIL_UID" gid="$VMAIL_GID"
+        check_command_result $?
+
+        debug "Setting user password."
+        $USERDBPW_BIN -md5 | $USERDB_BIN -f "$userdb" "$address" set systempw
+        check_command_result $?
+
+        debug "Rebuilding user database."
+        $MAKEUSERDB_BIN
+        check_command_result $?
+
+        note "User created successfully."
+        ;;
+
+
+    *)
+        note "To be implemented..."
+        ;;
+
+
+    esac
+else
+    usage
+fi

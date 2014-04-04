@@ -413,6 +413,23 @@ if [ ! "$1" = "" ]; then
         ;;
 
 
+    i|info|show)
+        bootstrap_user "$2"
+        check_dirs
+
+        if [ "$(address_exists)" != "true" ]; then
+            warn "This email address does not exist."
+            exit 1
+        fi
+
+        debug "Showing user informations."
+        $USERDB_BIN -show -f "$userdb" "$address"
+        check_command_result $?
+
+        # TODO: better formatting, more informations?
+        ;;
+
+
     *)
         note "To be implemented..."
         ;;

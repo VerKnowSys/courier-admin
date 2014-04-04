@@ -236,10 +236,11 @@ usage () {
 
 
 bootstrap_user () {
-    validate_address "$1"
-    user="$(get_user $1)"
+    email="$1"
+    validate_address "$email"
+    user="$(get_user $email)"
     validate_user "$user"
-    domain="$(get_domain $1)"
+    domain="$(get_domain $email)"
     validate_domain "$domain"
     user_home="${VMAIL_DIR}/${domain}/${user}"
     domain_home="${VMAIL_DIR}/${domain}"
@@ -395,11 +396,11 @@ if [ ! "$1" = "" ]; then
             exit 1
         fi
 
-        warn "Deleting <$2>"
+        warn "Deleting <$email>"
         yesno_prompt
 
         debug "Deleting user from database."
-        $USERDB_BIN -f "$userdb" "$address" del "${@:3}"
+        $USERDB_BIN -f "$userdb" "$address" del
         check_command_result $?
 
         # TODO: Remove maildir etc
@@ -408,7 +409,7 @@ if [ ! "$1" = "" ]; then
         $MAKEUSERDB_BIN
         check_command_result $?
 
-        note "User <$2> deleted successfully."
+        note "User <$email> deleted successfully."
         ;;
 
 

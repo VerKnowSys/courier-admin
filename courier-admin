@@ -349,7 +349,7 @@ if [ ! "$1" = "" ]; then
         check_dirs
 
         if [ "$(address_exists)" != "true" ]; then
-            warn "This email address does not exists"
+            warn "This email address does not exist."
             exit 1
         fi
 
@@ -370,7 +370,7 @@ if [ ! "$1" = "" ]; then
         check_dirs
 
         if [ "$(address_exists)" != "true" ]; then
-            warn "This email address does not exists"
+            warn "This email address does not exist."
             exit 1
         fi
 
@@ -383,6 +383,32 @@ if [ ! "$1" = "" ]; then
         check_command_result $?
 
         note "User settings updated successfully."
+        ;;
+
+
+    d|del|delete|r|rm|remove)
+        bootstrap_user "$2"
+        check_dirs
+
+        if [ "$(address_exists)" != "true" ]; then
+            warn "This email address does not exist."
+            exit 1
+        fi
+
+        warn "Deleting <$2>"
+        yesno_prompt
+
+        debug "Deleting user from database."
+        $USERDB_BIN -f "$userdb" "$address" del "${@:3}"
+        check_command_result $?
+
+        # TODO: Remove maildir etc
+
+        debug "Rebuilding user database."
+        $MAKEUSERDB_BIN
+        check_command_result $?
+
+        note "User <$2> deleted successfully."
         ;;
 
 

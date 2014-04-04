@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env zsh
 # @author: Michał Lipski <michal@tallica.pl>
 # Some parts are stolen from the famous software manager - Sofin.
 
@@ -226,6 +226,7 @@ usage () {
     note
     note "add <user@domain>"
     note "set <user@domain> [home=/Directory] [quota=10000]"
+    note "unset <user@domain> [home] [quota]"
     note "password <user@domain>"
     note "del <user@domain>"
     note "info <user@domain>"
@@ -340,6 +341,48 @@ if [ ! "$1" = "" ]; then
         check_command_result $?
 
         note "User password updated successfully."
+        ;;
+
+
+    s|set)
+        bootstrap_user "$2"
+        check_dirs
+
+        if [ "$(address_exists)" != "true" ]; then
+            warn "This email address does not exists"
+            exit 1
+        fi
+
+        debug "Updating user settings."
+        $USERDB_BIN -f "$userdb" "$address" set "${@:3}"
+        check_command_result $?
+
+        debug "Rebuilding user database."
+        $MAKEUSERDB_BIN
+        check_command_result $?
+
+        note "User settings updated successfully."
+        ;;
+
+
+    u|unset)
+        bootstrap_user "$2"
+        check_dirs
+
+        if [ "$(address_exists)" != "true" ]; then
+            warn "This email address does not exists"
+            exit 1
+        fi
+
+        debug "Updating user settings."
+        $USERDB_BIN -f "$userdb" "$address" unset "${@:3}"
+        check_command_result $?
+
+        debug "Rebuilding user database."
+        $MAKEUSERDB_BIN
+        check_command_result $?
+
+        note "User settings updated successfully."
         ;;
 
 

@@ -3,7 +3,7 @@
 # Some parts are stolen from the famous software manager - Sofin.
 
 
-VERSION="0.2.0"
+VERSION="0.2.1"
 HEADER="Courier Admin v${VERSION} - © 2o13 - Versatile Knowledge Systems - VerKnowSys.com"
 
 

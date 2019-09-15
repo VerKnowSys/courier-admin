@@ -16,7 +16,7 @@ MKDIR_BIN="/bin/mkdir"
 GREP_BIN="/usr/bin/grep"
 
 
-COURIER_CONF_DIR="/SystemUsers/SoftwareData/Courier/etc"
+COURIER_CONF_DIR="/Services/Courier/etc"
 COURIER_USERDB_DIR="${COURIER_CONF_DIR}/authlib/userdb"
 COURIER_HOSTEDDOMAINS_DIR="${COURIER_CONF_DIR}/hosteddomains"
 COURIER_ACCEPTMAILFOR_DIR="${COURIER_CONF_DIR}/esmtpacceptmailfor.dir"

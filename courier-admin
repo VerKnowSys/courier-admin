@@ -29,7 +29,7 @@ MAKEHOSTEDDOMAINS_BIN="${COURIER_BIN_DIR}/makehosteddomains"
 MAKEACCEPTMAILFOR_BIN="${COURIER_BIN_DIR}/makeacceptmailfor"
 
 
-VMAIL_DIR="/Vmail"
+VMAIL_DIR="/Services/Courier/Vmail"
 VMAIL_UID="1"
 VMAIL_GID="1"
 MAILDIR_DIR="Maildir"
